@@ -1,4 +1,9 @@
 // =======================
+// DNS FIX (VERY IMPORTANT)
+// =======================
+require("dns").setDefaultResultOrder("ipv4first");
+
+// =======================
 // IMPORTS
 // =======================
 const express = require("express");
@@ -7,17 +12,23 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 
+// =======================
 // ENV
+// =======================
 dotenv.config();
 const env = require("./config/env");
 
+// =======================
 // SECURITY
+// =======================
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const mongoSanitize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
 
+// =======================
 // LOGGER
+// =======================
 const morgan = require("morgan");
 
 // =======================
@@ -70,6 +81,8 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api/users", require("./routes/user"));
 app.use("/api/posts", require("./routes/post"));
 app.use("/api/messages", require("./routes/message"));
+
+console.log("✅ AUTH ROUTES LOADED");
 
 // =======================
 // ERROR HANDLER
@@ -130,6 +143,9 @@ io.on("connection", (socket) => {
 // DATABASE + SERVER START
 // =======================
 const PORT = env.PORT || 5000;
+
+// 🔍 DEBUG (remove after success)
+console.log("Using MONGO_URI:", env.MONGO_URI);
 
 mongoose
   .connect(env.MONGO_URI)

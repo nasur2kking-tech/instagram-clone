@@ -1,12 +1,10 @@
-console.log("✅ AUTH ROUTES LOADED");
-
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// ✅ IMPORT NEW UTILS
+// UTILS
 const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
 
