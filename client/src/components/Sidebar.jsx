@@ -15,7 +15,7 @@ export default function Sidebar() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(true);
 
-  // ✅ helper for active menu
+  // ✅ FIX: active helper supports /home
   const isActive = (path) => location.pathname === path;
 
   return (
@@ -26,13 +26,12 @@ export default function Sidebar() {
       
       {/* LOGO + TOGGLE */}
       <div className="flex items-center justify-between mb-10">
-        <Link to="/">
+        <Link to="/home">
           <h1 className="text-2xl font-bold tracking-wide cursor-pointer">
             {isOpen ? "Instagram" : "IG"}
           </h1>
         </Link>
 
-        {/* TOGGLE BUTTON */}
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="text-xl"
@@ -45,12 +44,12 @@ export default function Sidebar() {
       <div className="space-y-4 text-[16px]">
 
         {/* HOME */}
-        <Link to="/">
+        <Link to="/home">
           <div
             className={`flex items-center ${
               isOpen ? "gap-4" : "justify-center"
             } p-2 rounded-lg transition ${
-              isActive("/") ? "bg-gray-800" : "hover:bg-gray-800"
+              isActive("/home") ? "bg-gray-800" : "hover:bg-gray-800"
             }`}
           >
             <Home />

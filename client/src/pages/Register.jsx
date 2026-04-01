@@ -1,40 +1,104 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { registerUser } from "../api/authApi";
 
 const Register = () => {
-const [user, setUser] = useState({
-username: "",
-email: "",
-password: "",
-});
+  const navigate = useNavigate();
 
-const handleChange = (e) => {
-setUser({ ...user, [e.target.name]: e.target.value });
-};
+  const [user, setUser] = useState({
+    username: "",
+    email: "",
+    password: "",
+  });
 
-const handleRegister = async () => {
-try {
-await registerUser(user);
-alert("User registered successfully!");
-} catch (err) {
-console.error(err);
-}
-};
+  // ✅ AUTO REDIRECT IF ALREADY LOGGED IN
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/home");
+    }
+  }, [navigate]);
 
-return ( <div className="flex flex-col gap-3 p-4 max-w-sm mx-auto"> <h2 className="text-xl font-bold">Register</h2>
+  // ✅ HANDLE INPUT
+  const handleChange = (e) => {
+    setUser({ ...user, [e.target.name]: e.target.value });
+  };
 
+  // ✅ HANDLE REGISTER
+  const handleRegister = async () => {
+    if (!user.username || !user.email || !user.password) {
+      alert("Please fill all fields");
+      return;
+    }
 
-  <input name="username" placeholder="Username" onChange={handleChange} className="border p-2" />
-  <input name="email" placeholder="Email" onChange={handleChange} className="border p-2" />
-  <input name="password" type="password" placeholder="Password" onChange={handleChange} className="border p-2" />
+    try {
+      const response = await registerUser(user);
 
-  <button onClick={handleRegister} className="bg-green-500 text-white p-2">
-    Register
-  </button>
-</div>
+      // ✅ USE RESPONSE (NO ESLINT ERROR)
+      console.log("REGISTER RESPONSE:", response.data);
 
+      alert("User registered successfully!");
 
-);
+      // 🔥 REDIRECT TO LOGIN
+      navigate("/login");
+
+    } catch (err) {
+      console.error("❌ REGISTER ERROR:", err?.response?.data || err.message);
+      alert("Registration failed!");
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4 p-4 max-w-sm mx-auto bg-black text-white min-h-screen justify-center">
+
+      <h2 className="text-2xl font-bold text-center">Register</h2>
+
+      {/* USERNAME */}
+      <input
+        name="username"
+        placeholder="Username"
+        value={user.username}
+        onChange={handleChange}
+        className="border border-gray-600 bg-black text-white p-2 rounded"
+      />
+
+      {/* EMAIL */}
+      <input
+        name="email"
+        placeholder="Email"
+        value={user.email}
+        onChange={handleChange}
+        className="border border-gray-600 bg-black text-white p-2 rounded"
+      />
+
+      {/* PASSWORD */}
+      <input
+        name="password"
+        type="password"
+        placeholder="Password"
+        value={user.password}
+        onChange={handleChange}
+        className="border border-gray-600 bg-black text-white p-2 rounded"
+      />
+
+      {/* REGISTER BUTTON */}
+      <button
+        onClick={handleRegister}
+        className="bg-green-600 text-white p-2 rounded font-semibold hover:bg-green-700 transition"
+      >
+        Register
+      </button>
+
+      {/* 🔥 LOGIN LINK */}
+      <p className="text-center text-sm text-gray-400">
+        Already have an account?{" "}
+        <Link to="/login" className="text-blue-500">
+          Login
+        </Link>
+      </p>
+
+    </div>
+  );
 };
 
 export default Register;

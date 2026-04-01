@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { loginUser } from "../api/authApi";
 
 const Login = () => {
@@ -14,14 +14,16 @@ const Login = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      navigate("/");
+      navigate("/home"); // 🔥 FIXED
     }
   }, [navigate]);
 
+  // ✅ HANDLE INPUT CHANGE
   const handleChange = (e) => {
     setUser({ ...user, [e.target.name]: e.target.value });
   };
 
+  // ✅ HANDLE LOGIN
   const handleLogin = async () => {
     if (!user.email || !user.password) {
       alert("Please enter email and password");
@@ -40,7 +42,9 @@ const Login = () => {
         localStorage.setItem("userId", data._id);
 
         alert("Login successful!");
-        navigate("/");
+
+        // 🔥 REDIRECT TO HOME
+        navigate("/home"); // ✅ FIXED
       } else {
         alert("No token received!");
       }
@@ -52,35 +56,45 @@ const Login = () => {
   };
 
   return (
-    <div className="flex flex-col gap-3 p-4 max-w-sm mx-auto bg-black text-white min-h-screen justify-center">
+    <div className="flex flex-col gap-4 p-4 max-w-sm mx-auto bg-black text-white min-h-screen justify-center">
 
-      <h2 className="text-xl font-bold text-center">Login</h2>
+      <h2 className="text-2xl font-bold text-center">Login</h2>
 
+      {/* EMAIL */}
       <input
         name="email"
         placeholder="Email"
         onChange={handleChange}
+        value={user.email}
         className="border border-gray-600 bg-black text-white p-2 rounded"
       />
 
+      {/* PASSWORD */}
       <input
         name="password"
         type="password"
         placeholder="Password"
         onChange={handleChange}
+        value={user.password}
         className="border border-gray-600 bg-black text-white p-2 rounded"
       />
 
+      {/* LOGIN BUTTON */}
       <button
         type="button"
-        onClick={() => {
-          console.log("🟢 LOGIN CLICKED");
-          handleLogin();
-        }}
-        className="bg-blue-600 text-white p-2 rounded font-semibold"
+        onClick={handleLogin}
+        className="bg-blue-600 text-white p-2 rounded font-semibold hover:bg-blue-700 transition"
       >
         Login
       </button>
+
+      {/* 🔥 GO TO REGISTER */}
+      <p className="text-center text-sm text-gray-400">
+        Don't have an account?{" "}
+        <Link to="/register" className="text-blue-500">
+          Register
+        </Link>
+      </p>
 
     </div>
   );

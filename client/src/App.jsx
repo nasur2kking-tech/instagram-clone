@@ -9,14 +9,24 @@ import CreatePost from "./pages/CreatePost";
 import Notifications from "./pages/Notifications";
 import Chat from "./pages/Chat";
 
-// ✅ TEMP PAGES (until you build real ones)
+// ✅ TEMP PAGES
 const Search = () => <div className="text-white p-4">Search Page</div>;
 const Reels = () => <div className="text-white p-4">Reels Page</div>;
-const Messages = Chat; // 🔥 FIX: reuse Chat as Messages
+const Messages = Chat;
 
 function App() {
+  const token = localStorage.getItem("token");
+
   return (
     <Routes>
+
+      {/* ✅ DEFAULT ROUTE FIX */}
+      <Route
+        path="/"
+        element={
+          token ? <Navigate to="/home" /> : <Navigate to="/register" />
+        }
+      />
 
       {/* 🔓 PUBLIC ROUTES */}
       <Route path="/login" element={<Login />} />
@@ -26,7 +36,7 @@ function App() {
 
       {/* HOME */}
       <Route
-        path="/"
+        path="/home"
         element={
           <ProtectedRoute>
             <Home />
@@ -64,7 +74,7 @@ function App() {
         }
       />
 
-      {/* 🔥 FIX: MATCH SIDEBAR */}
+      {/* MESSAGES */}
       <Route
         path="/messages"
         element={
@@ -94,7 +104,7 @@ function App() {
         }
       />
 
-      {/* ❌ REMOVE /chat OR KEEP OPTIONAL */}
+      {/* OPTIONAL CHAT */}
       <Route
         path="/chat"
         element={
@@ -104,7 +114,7 @@ function App() {
         }
       />
 
-      {/* 🚨 FALLBACK (VERY IMPORTANT) */}
+      {/* 🚨 FALLBACK */}
       <Route path="*" element={<Navigate to="/" />} />
 
     </Routes>
