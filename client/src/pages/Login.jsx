@@ -4,26 +4,18 @@ import { loginUser } from "../api/authApi";
 
 const Login = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState({ email: "", password: "" });
 
-  const [user, setUser] = useState({
-    email: "",
-    password: "",
-  });
-
-  // ✅ AUTO REDIRECT IF ALREADY LOGGED IN
+  // Auto redirect if already logged in
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      navigate("/home"); // 🔥 FIXED
-    }
+    if (token) navigate("/home");
   }, [navigate]);
 
-  // ✅ HANDLE INPUT CHANGE
   const handleChange = (e) => {
     setUser({ ...user, [e.target.name]: e.target.value });
   };
 
-  // ✅ HANDLE LOGIN
   const handleLogin = async () => {
     if (!user.email || !user.password) {
       alert("Please enter email and password");
@@ -33,53 +25,44 @@ const Login = () => {
     try {
       console.log("📤 Sending login data:", user);
 
-      const { data } = await loginUser(user);
+      const data = await loginUser(user);
 
       console.log("✅ Response:", data);
 
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("userId", data._id);
-
+      if (data.data?.token) {
         alert("Login successful!");
-
-        // 🔥 REDIRECT TO HOME
-        navigate("/home"); // ✅ FIXED
+        navigate("/home");
       } else {
         alert("No token received!");
       }
 
     } catch (err) {
-      console.error("❌ LOGIN ERROR:", err?.response?.data || err.message);
-      alert("Login failed!");
+      console.error("❌ LOGIN ERROR:", err?.message);
+      alert(err.message || "Login failed!");
     }
   };
 
   return (
     <div className="flex flex-col gap-4 p-4 max-w-sm mx-auto bg-black text-white min-h-screen justify-center">
-
       <h2 className="text-2xl font-bold text-center">Login</h2>
 
-      {/* EMAIL */}
       <input
         name="email"
         placeholder="Email"
-        onChange={handleChange}
         value={user.email}
+        onChange={handleChange}
         className="border border-gray-600 bg-black text-white p-2 rounded"
       />
 
-      {/* PASSWORD */}
       <input
         name="password"
         type="password"
         placeholder="Password"
-        onChange={handleChange}
         value={user.password}
+        onChange={handleChange}
         className="border border-gray-600 bg-black text-white p-2 rounded"
       />
 
-      {/* LOGIN BUTTON */}
       <button
         type="button"
         onClick={handleLogin}
@@ -88,14 +71,12 @@ const Login = () => {
         Login
       </button>
 
-      {/* 🔥 GO TO REGISTER */}
       <p className="text-center text-sm text-gray-400">
         Don't have an account?{" "}
         <Link to="/register" className="text-blue-500">
           Register
         </Link>
       </p>
-
     </div>
   );
 };
