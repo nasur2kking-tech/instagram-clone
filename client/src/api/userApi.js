@@ -1,4 +1,16 @@
 import API from "./axios";
 
-export const followUser = (targetUserId) =>
-  API.put(`/users/${targetUserId}/follow`);
+// FOLLOW USER
+export const followUser = async (targetUserId) => {
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  if (!user?._id) {
+    throw new Error("User not logged in");
+  }
+
+  const res = await API.put(`/users/${targetUserId}/follow`, {
+    userId: user._id, // ✅ VERY IMPORTANT
+  });
+
+  return res.data;
+};

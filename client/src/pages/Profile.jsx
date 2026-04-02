@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import { getUserPosts } from "../api/postApi";
 import { followUser } from "../api/userApi";
 import { jwtDecode } from "jwt-decode";
+import { useParams } from "react-router-dom";
 
 const Profile = () => {
+  const { id } = useParams(); // ✅ profile user id from URL
+
   const [posts, setPosts] = useState([]);
   const [userId, setUserId] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
 
-  // ✅ Get user from localStorage
   const user = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
@@ -17,13 +19,10 @@ const Profile = () => {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        // ✅ Decode token
         const decoded = jwtDecode(token);
-        const id = decoded.id;
+        setUserId(decoded.id); // logged-in user
 
-        setUserId(id);
-
-        // ✅ Fetch posts for this user
+        // ✅ fetch profile user's posts (NOT logged user)
         const res = await getUserPosts(id);
         setPosts(res.data.data || []);
       } catch (err) {
@@ -33,14 +32,16 @@ const Profile = () => {
     };
 
     fetchData();
-  }, []);
+  }, [id]);
 
+  // ✅ FIXED FOLLOW FUNCTION
   const handleFollow = async () => {
     try {
-      await followUser(userId);
-      setIsFollowing(!isFollowing);
+      await followUser(id); // ✅ correct target user id
+      setIsFollowing(true);
+      alert("Followed ✅");
     } catch (err) {
-      console.error("Follow error:", err);
+      alert(err.message);
     }
   };
 
@@ -51,8 +52,10 @@ const Profile = () => {
         <div className="w-20 h-20 rounded-full bg-gray-700"></div>
 
         <div>
-          {/* ✅ Display username from localStorage */}
-          <h2 className="text-xl font-bold">{user?.username || "User"}</h2>
+          {/* username */}
+          <h2 className="text-xl font-bold">
+            {user?.username || "User"}
+          </h2>
 
           <div className="flex gap-4 mt-2 text-sm text-gray-400">
             <span><b>{posts.length}</b> posts</span>
@@ -60,18 +63,18 @@ const Profile = () => {
             <span><b>0</b> following</span>
           </div>
 
-          {/* ✅ Prevent self-follow */}
-          {userId && userId !== user?.id && (
+          {/* ✅ FIXED CONDITION */}
+          {userId && id && userId !== id && (
             <button
               onClick={handleFollow}
               className="bg-blue-600 px-4 py-1 mt-2 rounded"
             >
-              {isFollowing ? "Unfollow" : "Follow"}
+              {isFollowing ? "Following" : "Follow"}
             </button>
           )}
 
           <p className="mt-2 text-gray-300 text-xs break-all">
-            {userId}
+            Profile ID: {id}
           </p>
         </div>
       </div>
