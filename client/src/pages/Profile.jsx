@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { getUserPosts } from "../api/postApi";
 import { followUser } from "../api/userApi";
-import { jwtDecode } from "jwt-decode";
+import jwtDecode from "jwt-decode";
 
 const Profile = () => {
   const [posts, setPosts] = useState([]);
   const [userId, setUserId] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
+
+  // ✅ Get user from localStorage
+  const user = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
     const fetchData = async () => {
@@ -18,24 +21,20 @@ const Profile = () => {
         const decoded = jwtDecode(token);
         const id = decoded.id;
 
-        setUserId(id); // set early
+        setUserId(id);
 
-        // ✅ Fetch posts
+        // ✅ Fetch posts for this user
         const res = await getUserPosts(id);
-
-        // ✅ FIX: ensure array
         setPosts(res.data.data || []);
-
       } catch (err) {
         console.error("Profile error:", err);
-        setPosts([]); // safety fallback
+        setPosts([]);
       }
     };
 
     fetchData();
   }, []);
 
-  // ✅ FOLLOW / UNFOLLOW HANDLER
   const handleFollow = async () => {
     try {
       await followUser(userId);
@@ -47,14 +46,13 @@ const Profile = () => {
 
   return (
     <div className="bg-black text-white min-h-screen p-4">
-
       {/* PROFILE HEADER */}
       <div className="flex items-center gap-6 mb-6">
-        
         <div className="w-20 h-20 rounded-full bg-gray-700"></div>
 
         <div>
-          <h2 className="text-xl font-bold">User</h2>
+          {/* ✅ Display username from localStorage */}
+          <h2 className="text-xl font-bold">{user?.username || "User"}</h2>
 
           <div className="flex gap-4 mt-2 text-sm text-gray-400">
             <span><b>{posts.length}</b> posts</span>
@@ -62,8 +60,8 @@ const Profile = () => {
             <span><b>0</b> following</span>
           </div>
 
-          {/* ✅ FIX: prevent self-follow */}
-          {userId && userId !== localStorage.getItem("userId") && (
+          {/* ✅ Prevent self-follow */}
+          {userId && userId !== user?.id && (
             <button
               onClick={handleFollow}
               className="bg-blue-600 px-4 py-1 mt-2 rounded"
@@ -76,7 +74,6 @@ const Profile = () => {
             {userId}
           </p>
         </div>
-
       </div>
 
       {/* POSTS GRID */}
@@ -84,7 +81,6 @@ const Profile = () => {
         {posts.length === 0 ? (
           <p>No posts yet</p>
         ) : (
-          Array.isArray(posts) &&
           posts.map((post) => (
             <img
               key={post._id}
@@ -95,7 +91,6 @@ const Profile = () => {
           ))
         )}
       </div>
-
     </div>
   );
 };

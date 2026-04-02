@@ -27,8 +27,9 @@ const Register = () => {
       const data = await registerUser(user);
       console.log("REGISTER RESPONSE:", data);
 
-      if (data.data?.token) {
-        alert("Registration successful!");
+      // ✅ FIX: direct token access
+      if (data.token) {
+        alert("Registration successful! ✅");
         navigate("/home");
       } else {
         alert("No token received after registration!");

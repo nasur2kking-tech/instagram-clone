@@ -10,14 +10,16 @@ import { getPosts } from "../api/postApi";
 export default function Home() {
   const [posts, setPosts] = useState([]);
 
+  // ✅ Get user from localStorage
+  const user = JSON.parse(localStorage.getItem("user"));
+
   useEffect(() => {
     const fetchPosts = async () => {
       try {
         const res = await getPosts();
 
-        // ✅ FIX HERE
+        // ✅ Ensure posts array
         setPosts(res.data.data || []);
-        
       } catch (error) {
         console.error("Error fetching posts:", error);
         setPosts([]); // safety fallback
@@ -38,6 +40,12 @@ export default function Home() {
       {/* MAIN FEED */}
       <div className="flex-1 md:ml-[220px] max-w-xl mx-auto w-full px-2">
 
+        {/* ✅ PROFILE HEADER */}
+        <div className="flex items-center gap-4 p-4 border-b border-gray-800">
+          <div className="w-12 h-12 rounded-full bg-gray-700"></div>
+          <h2 className="text-xl font-bold">{user?.username || "User"}</h2>
+        </div>
+
         {/* STORIES */}
         <Stories />
 
@@ -49,9 +57,7 @@ export default function Home() {
           <p className="text-center mt-10">No posts yet...</p>
         ) : (
           Array.isArray(posts) &&
-          posts.map((post) => (
-            <Post key={post._id} post={post} />
-          ))
+          posts.map((post) => <Post key={post._id} post={post} />)
         )}
       </div>
 

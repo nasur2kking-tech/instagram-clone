@@ -29,8 +29,9 @@ const Login = () => {
 
       console.log("✅ Response:", data);
 
-      if (data.data?.token) {
-        alert("Login successful!");
+      // ✅ FIX: direct token access
+      if (data.token) {
+        alert("Login successful! ✅");
         navigate("/home");
       } else {
         alert("No token received!");
