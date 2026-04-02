@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getUserPosts } from "../api/postApi";
 import { followUser } from "../api/userApi";
-import jwtDecode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 const Profile = () => {
   const [posts, setPosts] = useState([]);
