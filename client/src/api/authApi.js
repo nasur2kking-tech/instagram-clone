@@ -2,7 +2,9 @@
 
 const BASE_URL = "https://instagram-backend-bm1w.onrender.com/api/auth";
 
-// Register user
+// =======================
+// REGISTER USER
+// =======================
 export const registerUser = async ({ username, email, password }) => {
   const res = await fetch(`${BASE_URL}/register`, {
     method: "POST",
@@ -16,16 +18,18 @@ export const registerUser = async ({ username, email, password }) => {
     throw new Error(data.message || "Registration failed");
   }
 
-  // Save token if returned
-  if (data.data?.token) {
-    localStorage.setItem("token", data.data.token);
-    localStorage.setItem("userId", data.data._id);
+  // ✅ FIX: Save FULL USER DATA
+  if (data.token) {
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data));
   }
 
   return data;
 };
 
-// Login user
+// =======================
+// LOGIN USER
+// =======================
 export const loginUser = async ({ email, password }) => {
   const res = await fetch(`${BASE_URL}/login`, {
     method: "POST",
@@ -39,10 +43,10 @@ export const loginUser = async ({ email, password }) => {
     throw new Error(data.message || "Login failed");
   }
 
-  // Save token if returned
-  if (data.data?.token) {
-    localStorage.setItem("token", data.data.token);
-    localStorage.setItem("userId", data.data._id);
+  // ✅ FIX: Save FULL USER DATA
+  if (data.token) {
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data));
   }
 
   return data;

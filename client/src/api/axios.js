@@ -1,18 +1,25 @@
+// client/api/axios.js
+
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: "https://instagram-backend-bm1w.onrender.com/api", // ✅ FIXED
 });
 
-// ✅ VERY IMPORTANT (ADD THIS)
-API.interceptors.request.use((req) => {
-  const token = localStorage.getItem("token");
+// =======================
+// ADD TOKEN TO EVERY REQUEST
+// =======================
+API.interceptors.request.use(
+  (req) => {
+    const token = localStorage.getItem("token");
 
-  if (token) {
-    req.headers.Authorization = `Bearer ${token}`;
-  }
+    if (token) {
+      req.headers.Authorization = `Bearer ${token}`;
+    }
 
-  return req;
-});
+    return req;
+  },
+  (error) => Promise.reject(error)
+);
 
 export default API;
