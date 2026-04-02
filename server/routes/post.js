@@ -9,9 +9,7 @@ const verifyToken = require("../middleware/authMiddleware");
 const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
 
-const { clearCacheByPattern } = require("../utils/cacheHelper");
-
-// ✅ NEW CLEAN MULTER + CLOUDINARY SETUP
+// NEW CLEAN MULTER + CLOUDINARY SETUP
 const upload = require("../middleware/multer");
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
@@ -29,18 +27,24 @@ router.post(
     }
 
     // Upload to Cloudinary
-    const result = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { folder: "posts" },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
+    let result;
+    try {
+      result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "posts" },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        streamifier.createReadStream(req.file.buffer).pipe(stream);
+      });
+    } catch (err) {
+      console.error("Cloudinary Upload Error:", err);
+      throw new AppError("Failed to upload image", 500);
+    }
 
-      streamifier.createReadStream(req.file.buffer).pipe(stream);
-    });
-
+    // Save post to MongoDB
     const newPost = new Post({
       userId: req.user.id,
       caption: req.body.caption,
@@ -49,7 +53,8 @@ router.post(
 
     const savedPost = await newPost.save();
 
-    await clearCacheByPattern("posts:*");
+    // Remove or comment out Redis cache call if Redis is not used
+    // await clearCacheByPattern("posts:*");
 
     res.status(201).json({
       success: true,
@@ -134,17 +139,13 @@ router.put(
     if (!post) throw new AppError("Post not found", 404);
 
     const userId = req.user.id;
-
-    const isLiked = post.likes.some(
-      (id) => id.toString() === userId
-    );
+    const isLiked = post.likes.some((id) => id.toString() === userId);
 
     if (isLiked) {
       await post.updateOne({ $pull: { likes: userId } });
     } else {
       await post.updateOne({ $push: { likes: userId } });
 
-      // create notification
       if (post.userId.toString() !== userId) {
         await Notification.create({
           userId: post.userId,
@@ -186,7 +187,7 @@ router.post(
     post.comments.push(newComment);
     await post.save();
 
-    await clearCacheByPattern("posts:*");
+    // await clearCacheByPattern("posts:*"); // Remove Redis calls
 
     res.status(200).json({
       success: true,

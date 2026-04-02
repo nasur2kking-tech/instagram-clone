@@ -1,16 +1,15 @@
-import API from "./axios"; // your pre-configured axios instance
+import API from "./axios"; // pre-configured axios instance
 
 // =======================
 // CREATE POST (UPLOAD)
 // =======================
-export const createPost = async (file, caption, authorId) => {
+export const createPost = async (file, caption) => {
   try {
-    const formData = new FormData();
+    if (!file) throw new Error("No file provided for upload");
 
-    // MUST match backend: upload.single("image")
-    formData.append("image", file);
+    const formData = new FormData();
+    formData.append("image", file); // MUST match backend upload.single("image")
     formData.append("caption", caption);
-    formData.append("authorId", authorId); // optional (backend may ignore if using token)
 
     const response = await API.post("/posts", formData, {
       headers: {
@@ -20,7 +19,10 @@ export const createPost = async (file, caption, authorId) => {
 
     return response.data;
   } catch (err) {
-    console.error("❌ Create Post Error:", err.response?.data || err.message);
+    console.error(
+      "❌ Create Post Error:",
+      err.response?.data || err.message
+    );
     throw err;
   }
 };
@@ -28,9 +30,9 @@ export const createPost = async (file, caption, authorId) => {
 // =======================
 // GET FEED POSTS
 // =======================
-export const getPosts = async () => {
+export const getPosts = async (page = 1, limit = 10) => {
   try {
-    const res = await API.get("/posts");
+    const res = await API.get(`/posts?page=${page}&limit=${limit}`);
     return res.data;
   } catch (err) {
     console.error("❌ Get Posts Error:", err.response?.data || err.message);
@@ -56,9 +58,7 @@ export const likePost = async (id) => {
 // =======================
 export const commentPost = async (id, comment) => {
   try {
-    const res = await API.post(`/posts/${id}/comment`, {
-      text: comment,
-    });
+    const res = await API.post(`/posts/${id}/comment`, { text: comment });
     return res.data;
   } catch (err) {
     console.error("❌ Comment Error:", err.response?.data || err.message);
@@ -69,12 +69,17 @@ export const commentPost = async (id, comment) => {
 // =======================
 // GET USER POSTS
 // =======================
-export const getUserPosts = async (userId) => {
+export const getUserPosts = async (userId, page = 1, limit = 10) => {
   try {
-    const res = await API.get(`/posts/user/${userId}`);
+    const res = await API.get(
+      `/posts/user/${userId}?page=${page}&limit=${limit}`
+    );
     return res.data;
   } catch (err) {
-    console.error("❌ Get User Posts Error:", err.response?.data || err.message);
+    console.error(
+      "❌ Get User Posts Error:",
+      err.response?.data || err.message
+    );
     throw err;
   }
 };
