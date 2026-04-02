@@ -1,3 +1,4 @@
+// client/src/api/postApi.js
 import API from "./axios"; // pre-configured axios instance
 
 // =======================
@@ -19,16 +20,13 @@ export const createPost = async (file, caption) => {
 
     return response.data;
   } catch (err) {
-    console.error(
-      "❌ Create Post Error:",
-      err.response?.data || err.message
-    );
+    console.error("❌ Create Post Error:", err.response?.data || err.message);
     throw err;
   }
 };
 
 // =======================
-// GET FEED POSTS
+// GET FEED POSTS (HOME)
 // =======================
 export const getPosts = async (page = 1, limit = 10) => {
   try {
@@ -41,7 +39,7 @@ export const getPosts = async (page = 1, limit = 10) => {
 };
 
 // =======================
-// LIKE / UNLIKE
+// LIKE / UNLIKE POST
 // =======================
 export const likePost = async (id) => {
   try {
@@ -54,7 +52,7 @@ export const likePost = async (id) => {
 };
 
 // =======================
-// COMMENT
+// ADD COMMENT
 // =======================
 export const commentPost = async (id, comment) => {
   try {
@@ -67,7 +65,7 @@ export const commentPost = async (id, comment) => {
 };
 
 // =======================
-// GET USER POSTS
+// GET USER POSTS (PROFILE)
 // =======================
 export const getUserPosts = async (userId, page = 1, limit = 10) => {
   try {
@@ -76,10 +74,7 @@ export const getUserPosts = async (userId, page = 1, limit = 10) => {
     );
     return res.data;
   } catch (err) {
-    console.error(
-      "❌ Get User Posts Error:",
-      err.response?.data || err.message
-    );
+    console.error("❌ Get User Posts Error:", err.response?.data || err.message);
     throw err;
   }
 };

@@ -1,3 +1,4 @@
+// server/routes/post.js
 const express = require("express");
 const router = express.Router();
 
@@ -9,7 +10,7 @@ const verifyToken = require("../middleware/authMiddleware");
 const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
 
-// NEW CLEAN MULTER + CLOUDINARY SETUP
+// Multer + Cloudinary setup
 const upload = require("../middleware/multer");
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
@@ -26,7 +27,7 @@ router.post(
       throw new AppError("Image is required", 400);
     }
 
-    // Upload to Cloudinary
+    // Upload image to Cloudinary
     let result;
     try {
       result = await new Promise((resolve, reject) => {
@@ -53,9 +54,7 @@ router.post(
 
     const savedPost = await newPost.save();
 
-    // Remove or comment out Redis cache call if Redis is not used
-    // await clearCacheByPattern("posts:*");
-
+    // Return post
     res.status(201).json({
       success: true,
       data: savedPost,
@@ -64,7 +63,7 @@ router.post(
 );
 
 // =======================
-// GET POSTS (FEED)
+// GET POSTS (HOME FEED)
 // =======================
 router.get(
   "/",
@@ -72,14 +71,13 @@ router.get(
   asyncHandler(async (req, res) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
     const currentUser = await User.findById(req.user.id);
     if (!currentUser) throw new AppError("User not found", 404);
 
-    const skip = (page - 1) * limit;
-    const following = currentUser.following || [];
-
-    const ids = [req.user.id, ...following];
+    // Include current user + following users
+    const ids = [req.user.id, ...(currentUser.following || [])];
 
     const [posts, total] = await Promise.all([
       Post.find({ userId: { $in: ids } })
@@ -100,14 +98,13 @@ router.get(
 );
 
 // =======================
-// GET POSTS BY USER
+// GET POSTS BY USER (PROFILE)
 // =======================
 router.get(
   "/user/:userId",
   asyncHandler(async (req, res) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
-
     const skip = (page - 1) * limit;
 
     const [posts, total] = await Promise.all([
@@ -129,7 +126,7 @@ router.get(
 );
 
 // =======================
-// LIKE / UNLIKE
+// LIKE / UNLIKE POST
 // =======================
 router.put(
   "/:id/like",
@@ -146,6 +143,7 @@ router.put(
     } else {
       await post.updateOne({ $push: { likes: userId } });
 
+      // Create notification if post is liked by someone else
       if (post.userId.toString() !== userId) {
         await Notification.create({
           userId: post.userId,
@@ -166,7 +164,7 @@ router.put(
 );
 
 // =======================
-// COMMENT
+// ADD COMMENT
 // =======================
 router.post(
   "/:id/comment",
@@ -186,8 +184,6 @@ router.post(
 
     post.comments.push(newComment);
     await post.save();
-
-    // await clearCacheByPattern("posts:*"); // Remove Redis calls
 
     res.status(200).json({
       success: true,
