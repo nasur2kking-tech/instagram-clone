@@ -34,9 +34,13 @@ const server = http.createServer(app);
 // =======================
 app.disable("x-powered-by");
 
+// ✅ FIXED CORS (IMPORTANT)
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "*",
+    origin: [
+      "http://localhost:5173",
+      "https://instagram-clone-chi-five.vercel.app",
+    ],
     credentials: true,
   })
 );
@@ -85,12 +89,16 @@ const errorHandler = require("./middleware/error.middleware");
 app.use(errorHandler);
 
 // =======================
-// SOCKET.IO
+// SOCKET.IO (FIXED CORS)
 // =======================
 const io = require("socket.io")(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "*",
+    origin: [
+      "http://localhost:5173",
+      "https://instagram-clone-chi-five.vercel.app",
+    ],
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
