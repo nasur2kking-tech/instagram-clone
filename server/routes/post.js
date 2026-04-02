@@ -3,12 +3,12 @@ const router = express.Router();
 
 const Post = require("../models/Post");
 const Notification = require("../models/Notification");
+const User = require("../models/User");
 
 const verifyToken = require("../middleware/authMiddleware");
 const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
 
-// const redisClient = require("../config/redis");
 const { clearCacheByPattern } = require("../utils/cacheHelper");
 
 // IMAGE UPLOAD
@@ -18,7 +18,6 @@ const cloudinary = require("../config/cloudinary");
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
-
 
 // =======================
 // CREATE POST
@@ -48,14 +47,13 @@ router.post(
     }
 
     const newPost = new Post({
-      userId: req.user.id,
+      userId: req.user.id, // ✅ logged user
       caption: req.body.caption,
       image: imageUrl,
     });
 
     const savedPost = await newPost.save();
 
-    // CLEAR CACHE
     await clearCacheByPattern("posts:*");
 
     res.status(201).json({
@@ -65,46 +63,40 @@ router.post(
   })
 );
 
-
 // =======================
-// GET ALL POSTS (CACHED)
+// GET POSTS (FEED: SELF + FOLLOWING)
 // =======================
 router.get(
   "/",
+  verifyToken,
   asyncHandler(async (req, res) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
 
-    const cacheKey = `posts:${page}:${limit}`;
-
-    // ✅ FIX: GET CACHE
-    const cached = null; // await redisClient.get(cacheKey);
+    const currentUser = await User.findById(req.user.id);
 
     const skip = (page - 1) * limit;
 
+    // Include posts from self + users they follow
+    const ids = [req.user.id, ...currentUser.following];
+
     const [posts, total] = await Promise.all([
-      Post.find()
+      Post.find({ userId: { $in: ids } })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
-      Post.countDocuments(),
+      Post.countDocuments({ userId: { $in: ids } }),
     ]);
 
-    const response = {
+    res.status(200).json({
       success: true,
       page,
       totalPages: Math.ceil(total / limit),
       totalPosts: total,
       data: posts,
-    };
-
-    // ✅ FIX: SET CACHE
-    // await redisClient.setEx(cacheKey, 60, JSON.stringify(response));
-
-    res.status(200).json(response);
+    });
   })
 );
-
 
 // =======================
 // GET POSTS BY USER
@@ -135,7 +127,6 @@ router.get(
   })
 );
 
-
 // =======================
 // LIKE / UNLIKE
 // =======================
@@ -144,14 +135,11 @@ router.put(
   verifyToken,
   asyncHandler(async (req, res) => {
     const post = await Post.findById(req.params.id);
-
     if (!post) throw new AppError("Post not found", 404);
 
     const userId = req.user.id;
 
-    const isLiked = post.likes.some(
-      (id) => id.toString() === userId
-    );
+    const isLiked = post.likes.some((id) => id.toString() === userId);
 
     if (isLiked) {
       await post.updateOne({ $pull: { likes: userId } });
@@ -170,16 +158,12 @@ router.put(
 
     const updatedPost = await Post.findById(req.params.id);
 
-    // CLEAR CACHE
-    // await clearCacheByPattern("posts:*");
-
     res.status(200).json({
       success: true,
       data: updatedPost,
     });
   })
 );
-
 
 // =======================
 // COMMENT
@@ -189,7 +173,6 @@ router.post(
   verifyToken,
   asyncHandler(async (req, res) => {
     const post = await Post.findById(req.params.id);
-
     if (!post) throw new AppError("Post not found", 404);
 
     const newComment = {
@@ -200,7 +183,6 @@ router.post(
     post.comments.push(newComment);
     await post.save();
 
-    // CLEAR CACHE
     await clearCacheByPattern("posts:*");
 
     res.status(200).json({
