@@ -19,11 +19,13 @@ router.post(
   "/register",
   asyncHandler(async (req, res) => {
     const parsed = registerSchema.safeParse(req.body);
+
+    // ✅ Safe error handling for validation
     if (!parsed.success) {
-      throw new AppError(
-        parsed.error.errors.map((e) => e.message).join(", "),
-        400
-      );
+      const messages = Array.isArray(parsed.error?.errors)
+        ? parsed.error.errors.map((e) => e.message).join(", ")
+        : "Invalid input";
+      throw new AppError(messages, 400);
     }
 
     const { username, email, password } = parsed.data;
@@ -52,7 +54,7 @@ router.post(
       { expiresIn: "7d" }
     );
 
-    // ✅ FIXED RESPONSE (NO "data")
+    // ✅ Fixed response (send user data directly, no nested "data")
     res.status(201).json({
       ...others,
       token,
@@ -67,11 +69,12 @@ router.post(
   "/login",
   asyncHandler(async (req, res) => {
     const parsed = loginSchema.safeParse(req.body);
+
     if (!parsed.success) {
-      throw new AppError(
-        parsed.error.errors.map((e) => e.message).join(", "),
-        400
-      );
+      const messages = Array.isArray(parsed.error?.errors)
+        ? parsed.error.errors.map((e) => e.message).join(", ")
+        : "Invalid input";
+      throw new AppError(messages, 400);
     }
 
     const { email, password } = parsed.data;
@@ -94,7 +97,6 @@ router.post(
 
     const { password: pwd, ...others } = user._doc;
 
-    // ✅ FIXED RESPONSE (NO "data")
     res.status(200).json({
       ...others,
       token,

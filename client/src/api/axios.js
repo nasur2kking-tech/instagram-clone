@@ -1,23 +1,33 @@
+// client/src/api/axios.js
 import axios from "axios";
 
-/* eslint-disable no-undef */ // add this at the top of the file
-
-const BASE_URL = process.env.REACT_APP_API_URL || "https://instagram-backend-bm1w.onrender.com/api";
+// =======================
+// BASE URL (Vite-compatible)
+// =======================
+const BASE_URL = import.meta.env.VITE_API_URL || "https://instagram-backend-bm1w.onrender.com/api";
 
 const API = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true,
+  withCredentials: true, // include cookies if needed
 });
 
+// =======================
+// REQUEST INTERCEPTOR
+// =======================
 API.interceptors.request.use(
   (req) => {
     const token = localStorage.getItem("token");
-    if (token) req.headers.Authorization = `Bearer ${token}`;
+    if (token) {
+      req.headers.Authorization = `Bearer ${token}`;
+    }
     return req;
   },
   (error) => Promise.reject(error)
 );
 
+// =======================
+// RESPONSE INTERCEPTOR
+// =======================
 API.interceptors.response.use(
   (response) => response,
   (error) => {

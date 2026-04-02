@@ -1,3 +1,4 @@
+// client/src/pages/Home.jsx
 import { useEffect, useState } from "react";
 
 import Stories from "../components/Stories";
@@ -10,11 +11,11 @@ import Chat from "../components/Chat";
 import { getPosts } from "../api/postApi";
 
 export default function Home() {
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts] = useState([]); // ✅ always array
   const [chatUser, setChatUser] = useState(null);
 
-  // ✅ Get logged-in user
-  const user = JSON.parse(localStorage.getItem("user"));
+  // ✅ Get logged-in user safely
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   // =======================
   // FETCH POSTS
@@ -24,8 +25,14 @@ export default function Home() {
       try {
         const res = await getPosts();
 
-        // backend returns { success, data }
-        setPosts(res.data || []);
+        // Normalize response: ensure we have an array
+        const postsData = Array.isArray(res.data)
+          ? res.data
+          : res.data?.posts && Array.isArray(res.data.posts)
+          ? res.data.posts
+          : [];
+
+        setPosts(postsData);
       } catch (error) {
         console.error("❌ Error fetching posts:", error);
         setPosts([]);
@@ -72,12 +79,11 @@ export default function Home() {
         <CreatePost userId={user?._id} />
 
         {/* POSTS */}
-        {posts.length === 0 ? (
-          <p className="text-center mt-10">No posts yet...</p>
+        {Array.isArray(posts) && posts.length === 0 ? (
+          <p className="text-center mt-10 text-gray-400">No posts yet...</p>
         ) : (
-          posts.map((post) => (
-            <Post key={post._id} post={post} />
-          ))
+          Array.isArray(posts) &&
+          posts.map((post) => <Post key={post._id} post={post} />)
         )}
       </div>
 
@@ -87,8 +93,8 @@ export default function Home() {
       <div className="hidden lg:block w-[350px] border-l border-gray-800">
         {chatUser ? (
           <Chat
-            receiverId={chatUser.id}
-            receiverName={chatUser.name}
+            receiverId={chatUser.id || chatUser._id} // ✅ fallback for id
+            receiverName={chatUser.name || chatUser.username}
           />
         ) : (
           <div className="p-4 text-gray-400">

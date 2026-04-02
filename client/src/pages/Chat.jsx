@@ -1,9 +1,10 @@
+// client/src/components/Chat.jsx
 import { useEffect, useState, useRef } from "react";
 import { sendMessage, getMessages } from "../api/messageApi";
 import { io } from "socket.io-client";
 
 const Chat = () => {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([]); // ✅ always array
   const [text, setText] = useState("");
 
   // ✅ Lazy state initializer for receiverId
@@ -11,60 +12,65 @@ const Chat = () => {
 
   const socket = useRef();
 
-  // 🔌 SOCKET
+  // 🔌 SOCKET.IO
   useEffect(() => {
-    socket.current = io("http://localhost:5000"); // change to your backend in prod
+    socket.current = io("http://localhost:5000"); // backend URL
+
     const userId = localStorage.getItem("userId");
-    if (userId) {
-      socket.current.emit("addUser", userId);
-    }
+    if (userId) socket.current.emit("addUser", userId);
 
     socket.current.on("getMessage", (data) => {
-      setMessages((prev) => [...prev, data]);
+      // ✅ only append if data has text
+      if (data && data.text) {
+        setMessages((prev) => [...prev, data]);
+      }
     });
 
-    return () => socket.current.disconnect();
+    return () => {
+      socket.current.disconnect();
+    };
   }, []);
 
-  // 📥 Fetch messages whenever receiverId changes
+  // 📥 Fetch messages safely
   useEffect(() => {
     if (!receiverId) return;
 
-    // ✅ Use async IIFE to avoid ESLint warning
     (async () => {
       try {
-        const { data } = await getMessages(receiverId);
-        setMessages(data);
+        const res = await getMessages(receiverId);
+
+        // ✅ ensure we get an array
+        const msgs = Array.isArray(res.data)
+          ? res.data
+          : res.data?.messages && Array.isArray(res.data.messages)
+          ? res.data.messages
+          : [];
+
+        setMessages(msgs);
       } catch (err) {
         console.error("Fetch messages error:", err);
+        setMessages([]); // fallback
       }
     })();
   }, [receiverId]);
 
   // ✅ Send message
   const handleSend = async () => {
-    if (!receiverId) {
-      alert("Receiver ID missing");
-      return;
-    }
+    if (!receiverId || !text.trim()) return;
 
-    if (!text.trim()) {
-      alert("Type a message");
-      return;
-    }
-
-    const senderId = localStorage.getItem("userId");
+    const senderId = localStorage.getItem("userId") || "guest";
 
     try {
-      const { data } = await sendMessage(receiverId, text);
+      const res = await sendMessage(receiverId, text);
 
-      socket.current.emit("sendMessage", {
-        senderId,
-        receiverId,
-        text,
-      });
+      const newMsg =
+        (res.data && typeof res.data === "object" ? res.data : { senderId, receiverId, text }) ||
+        { senderId, receiverId, text };
 
-      setMessages((prev) => [...prev, data]);
+      setMessages((prev) => [...prev, newMsg]);
+
+      socket.current.emit("sendMessage", newMsg);
+
       setText("");
     } catch (err) {
       console.error("Send message error:", err);
@@ -78,22 +84,23 @@ const Chat = () => {
 
       {/* 💬 Messages */}
       <div className="flex-1 overflow-y-auto mb-4 space-y-2">
-        {messages.length === 0 ? (
+        {Array.isArray(messages) && messages.length === 0 && (
           <p className="text-gray-400 text-center mt-4">No messages yet</p>
-        ) : (
+        )}
+
+        {Array.isArray(messages) &&
           messages.map((msg, i) => (
             <p
               key={i}
-              className={`text-sm p-2 rounded ${
+              className={`text-sm p-2 rounded max-w-[70%] ${
                 msg.senderId === localStorage.getItem("userId")
                   ? "bg-blue-600 self-end"
                   : "bg-gray-800 self-start"
               }`}
             >
-              {msg.text}
+              {msg.text || ""}
             </p>
-          ))
-        )}
+          ))}
       </div>
 
       {/* ✍️ Input */}

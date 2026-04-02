@@ -1,3 +1,4 @@
+// server/routes/user.js
 const express = require("express");
 const router = express.Router();
 const verifyToken = require("../middleware/authMiddleware");
@@ -10,7 +11,7 @@ const Notification = require("../models/Notification");
 router.get("/profile", verifyToken, (req, res) => {
   res.status(200).json({
     message: "You are authenticated 🔐",
-    user: req.user,
+    user: req.user || null,
   });
 });
 
@@ -19,45 +20,51 @@ router.get("/profile", verifyToken, (req, res) => {
 // =======================
 router.put("/:id/follow", verifyToken, async (req, res) => {
   try {
+    const targetId = req.params.id;
+    const currentUserId = req.user.id;
+
     // ❌ Prevent self-follow
-    if (req.user.id === req.params.id) {
-      return res.status(400).json("You can't follow yourself");
+    if (currentUserId === targetId) {
+      return res.status(400).json({ message: "You can't follow yourself" });
     }
 
-    const targetUser = await User.findById(req.params.id); // user to follow/unfollow
-    const currentUser = await User.findById(req.user.id); // logged-in user
+    const targetUser = await User.findById(targetId);
+    const currentUser = await User.findById(currentUserId);
 
     if (!targetUser || !currentUser) {
-      return res.status(404).json("User not found");
+      return res.status(404).json({ message: "User not found" });
     }
 
-    const isFollowing = targetUser.followers
-      .map(id => id.toString())
-      .includes(req.user.id);
+    // ✅ Safe followers check
+    const followersArray = Array.isArray(targetUser.followers)
+      ? targetUser.followers.map((id) => id.toString())
+      : [];
+
+    const isFollowing = followersArray.includes(currentUserId);
 
     if (!isFollowing) {
       // ✅ FOLLOW
-      await targetUser.updateOne({ $push: { followers: req.user.id } });
-      await currentUser.updateOne({ $push: { following: req.params.id } });
+      await targetUser.updateOne({ $push: { followers: currentUserId } });
+      await currentUser.updateOne({ $push: { following: targetId } });
 
       // 🔔 CREATE NOTIFICATION
       await Notification.create({
-        userId: req.params.id,   // receiver
-        senderId: req.user.id,   // who followed
+        userId: targetId,    // receiver
+        senderId: currentUserId, // who followed
         type: "follow",
       });
 
-      res.status(200).json("User followed");
+      res.status(200).json({ message: "User followed" });
     } else {
       // ✅ UNFOLLOW
-      await targetUser.updateOne({ $pull: { followers: req.user.id } });
-      await currentUser.updateOne({ $pull: { following: req.params.id } });
+      await targetUser.updateOne({ $pull: { followers: currentUserId } });
+      await currentUser.updateOne({ $pull: { following: targetId } });
 
-      res.status(200).json("User unfollowed");
+      res.status(200).json({ message: "User unfollowed" });
     }
   } catch (err) {
     console.error("FOLLOW ERROR:", err);
-    res.status(500).json(err.message);
+    res.status(500).json({ message: err.message || "Server error" });
   }
 });
 

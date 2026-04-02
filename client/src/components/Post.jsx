@@ -1,19 +1,19 @@
-import { useState } from "react";
+// client/src/components/Post.jsx
+import { useState, useEffect } from "react";
 import { likePost, commentPost } from "../api/postApi";
 
 const Post = ({ post }) => {
-  // ✅ Likes state
-  const [likes, setLikes] = useState(post.likes || []);
-
-  // ✅ Comments state
-  const [comments, setComments] = useState(post.comments || []);
+  // ✅ Ensure likes and comments are always arrays
+  const [likes, setLikes] = useState(Array.isArray(post.likes) ? post.likes : []);
+  const [comments, setComments] = useState(Array.isArray(post.comments) ? post.comments : []);
   const [newComment, setNewComment] = useState("");
+
+  // Optional: track current userId safely
+  const userId = localStorage.getItem("userId") || "guest";
 
   // ✅ OPTIMISTIC LIKE HANDLER
   const handleLike = async () => {
     try {
-      const userId = localStorage.getItem("userId");
-
       let updatedLikes;
 
       if (likes.includes(userId)) {
@@ -22,9 +22,8 @@ const Post = ({ post }) => {
         updatedLikes = [...likes, userId];
       }
 
-      setLikes(updatedLikes); // ⚡ instant UI
-      await likePost(post._id); // 🔁 backend sync
-
+      setLikes(updatedLikes); // instant UI
+      await likePost(post._id); // sync with backend
     } catch (error) {
       console.error("Error liking post:", error);
     }
@@ -34,14 +33,12 @@ const Post = ({ post }) => {
   const handleComment = async () => {
     if (!newComment.trim()) return;
 
-    const userId = localStorage.getItem("userId");
-
     const tempComment = {
       userId,
       text: newComment,
     };
 
-    setComments([...comments, tempComment]);
+    setComments((prev) => [...prev, tempComment]); // instant UI
     setNewComment("");
 
     try {
@@ -63,15 +60,13 @@ const Post = ({ post }) => {
       />
 
       {/* CAPTION */}
-      <p className="mt-2 text-sm text-gray-300">{post.caption}</p>
+      <p className="mt-2 text-sm text-gray-300">{post.caption || ""}</p>
 
       {/* LIKE BUTTON */}
       <button
         onClick={handleLike}
         className={`mt-2 font-semibold ${
-          likes.includes(localStorage.getItem("userId"))
-            ? "text-red-500"
-            : "text-gray-400"
+          likes.includes(userId) ? "text-red-500" : "text-gray-400"
         }`}
       >
         ❤️ {likes.length} likes
@@ -94,22 +89,22 @@ const Post = ({ post }) => {
         </button>
       </div>
 
-      {/* ✅ SAFE COMMENTS LIST */}
+      {/* COMMENTS LIST */}
       <div className="mt-3">
-        {comments.length === 0 ? (
+        {Array.isArray(comments) && comments.length === 0 && (
           <p className="text-gray-500 text-sm">No comments yet</p>
-        ) : (
-          (comments || []).map((comment, index) => (
+        )}
+
+        {Array.isArray(comments) &&
+          comments.map((comment, index) => (
             <p key={index} className="text-sm border-b border-gray-700 py-1">
               <span className="font-semibold text-white">
                 {(comment?.userId || "user").slice(0, 6)}:
               </span>{" "}
               <span className="text-blue-400">{comment?.text || ""}</span>
             </p>
-          ))
-        )}
+          ))}
       </div>
-
     </div>
   );
 };

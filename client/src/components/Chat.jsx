@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { sendMessage, getMessages } from "../api/messageApi";
 
 const Chat = ({ receiverId, receiverName }) => {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([]); // ✅ always start with array
   const [text, setText] = useState("");
   const scrollRef = useRef(null);
 
@@ -16,15 +16,23 @@ const Chat = ({ receiverId, receiverName }) => {
     const fetchMessages = async () => {
       try {
         const res = await getMessages(receiverId);
-        if (res.success) setMessages(res.data); // success check depends on backend
-        else setMessages(res); // fallback if API returns array directly
+
+        // Ensure messages is always an array
+        const msgs = Array.isArray(res)
+          ? res
+          : res.success && Array.isArray(res.data)
+          ? res.data
+          : [];
+
+        setMessages(msgs);
       } catch (err) {
         console.error("Fetch messages error:", err);
+        setMessages([]); // fallback
       }
     };
 
     fetchMessages();
-  }, [receiverId]); // ✅ fetchMessages is defined inside, no dependency warning
+  }, [receiverId]);
 
   // Send a new message
   const handleSend = async (e) => {
@@ -33,8 +41,13 @@ const Chat = ({ receiverId, receiverName }) => {
 
     try {
       const res = await sendMessage(receiverId, text);
-      if (res.success) setMessages((prev) => [...prev, res.data]);
-      else setMessages((prev) => [...prev, res]); // fallback
+
+      // Safely append new message if API response is valid
+      const newMsg =
+        (res.success && res.data) || (Array.isArray(res) ? res[0] : res);
+
+      if (newMsg) setMessages((prev) => [...prev, newMsg]);
+
       setText("");
     } catch (err) {
       console.error("Send message error:", err);
@@ -58,23 +71,27 @@ const Chat = ({ receiverId, receiverName }) => {
         {messages.length === 0 && (
           <p className="text-gray-500 text-sm">No messages yet</p>
         )}
-        {messages.map((msg) => (
-          <div
-            key={msg._id}
-            ref={scrollRef}
-            className={`my-1 p-2 rounded max-w-[70%] ${
-              msg.senderId === user.id ? "bg-blue-600 ml-auto" : "bg-gray-800"
-            }`}
-          >
-            <p>{msg.text}</p>
-            <span className="text-xs text-gray-400 float-right">
-              {new Date(msg.createdAt).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
-          </div>
-        ))}
+
+        {/* Render only if messages is array */}
+        {Array.isArray(messages) &&
+          messages.map((msg) => (
+            <div
+              key={msg._id}
+              ref={scrollRef}
+              className={`my-1 p-2 rounded max-w-[70%] ${
+                msg.senderId === user.id ? "bg-blue-600 ml-auto" : "bg-gray-800"
+              }`}
+            >
+              <p>{msg.text}</p>
+              <span className="text-xs text-gray-400 float-right">
+                {msg.createdAt &&
+                  new Date(msg.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+              </span>
+            </div>
+          ))}
       </div>
 
       {/* Input */}
