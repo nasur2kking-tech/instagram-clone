@@ -27,29 +27,29 @@ router.post(
   verifyToken,
   upload.single("image"),
   asyncHandler(async (req, res) => {
-    let imageUrl = "";
-
-    if (req.file) {
-      const streamUpload = () =>
-        new Promise((resolve, reject) => {
-          const stream = cloudinary.uploader.upload_stream(
-            { folder: "posts" },
-            (error, result) => {
-              if (result) resolve(result);
-              else reject(error);
-            }
-          );
-          streamifier.createReadStream(req.file.buffer).pipe(stream);
-        });
-
-      const result = await streamUpload();
-      imageUrl = result.secure_url;
+    // ✅ FIX 1: ensure image exists
+    if (!req.file) {
+      throw new AppError("Image is required", 400);
     }
 
+    const streamUpload = () =>
+      new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "posts" },
+          (error, result) => {
+            if (result) resolve(result);
+            else reject(error);
+          }
+        );
+        streamifier.createReadStream(req.file.buffer).pipe(stream);
+      });
+
+    const result = await streamUpload();
+
     const newPost = new Post({
-      userId: req.user.id, // ✅ logged user
+      userId: req.user.id,
       caption: req.body.caption,
-      image: imageUrl,
+      image: result.secure_url, // ✅ FIX 2: direct use
     });
 
     const savedPost = await newPost.save();
@@ -77,8 +77,10 @@ router.get(
 
     const skip = (page - 1) * limit;
 
-    // Include posts from self + users they follow
-    const ids = [req.user.id, ...currentUser.following];
+    // ✅ handle empty following safely
+    const following = currentUser.following || [];
+
+    const ids = [req.user.id, ...following];
 
     const [posts, total] = await Promise.all([
       Post.find({ userId: { $in: ids } })
@@ -139,7 +141,9 @@ router.put(
 
     const userId = req.user.id;
 
-    const isLiked = post.likes.some((id) => id.toString() === userId);
+    const isLiked = post.likes.some(
+      (id) => id.toString() === userId
+    );
 
     if (isLiked) {
       await post.updateOne({ $pull: { likes: userId } });

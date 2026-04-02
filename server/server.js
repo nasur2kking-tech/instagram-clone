@@ -20,13 +20,14 @@ const morgan = require("morgan");
 // ENV
 // =======================
 if (process.env.NODE_ENV !== "production") {
-  require("dotenv").config(); // only for local development
+  require("dotenv").config();
 }
 
 // =======================
 // INIT APP
 // =======================
 const app = express();
+app.set("trust proxy", 1); // ✅ IMPORTANT (for Render / proxies)
 const server = http.createServer(app);
 
 // =======================
@@ -34,7 +35,7 @@ const server = http.createServer(app);
 // =======================
 app.disable("x-powered-by");
 
-// ✅ FIXED CORS (IMPORTANT)
+// ✅ CORS
 app.use(
   cors({
     origin: [
@@ -45,15 +46,20 @@ app.use(
   })
 );
 
+// BODY PARSER
 app.use(express.json({ limit: "10kb" }));
+
+// LOGGER
 app.use(morgan("dev"));
 
+// SECURITY HEADERS
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
   })
 );
 
+// SANITIZATION
 app.use(mongoSanitize());
 app.use(xss());
 
@@ -104,13 +110,17 @@ const io = require("socket.io")(server, {
 
 let users = [];
 
+// ADD USER
 const addUser = (userId, socketId) => {
   if (!users.some((u) => u.userId === userId)) {
     users.push({ userId, socketId });
   }
 };
 
+// GET USER
 const getUser = (userId) => users.find((u) => u.userId === userId);
+
+// REMOVE USER
 const removeUser = (socketId) => {
   users = users.filter((u) => u.socketId !== socketId);
 };
@@ -118,12 +128,18 @@ const removeUser = (socketId) => {
 io.on("connection", (socket) => {
   console.log("🔌 Connected:", socket.id);
 
-  socket.on("addUser", (userId) => addUser(userId, socket.id));
+  socket.on("addUser", (userId) => {
+    addUser(userId, socket.id);
+  });
 
   socket.on("sendMessage", ({ senderId, receiverId, text }) => {
     const user = getUser(receiverId);
+
     if (user) {
-      io.to(user.socketId).emit("getMessage", { senderId, text });
+      io.to(user.socketId).emit("getMessage", {
+        senderId,
+        text,
+      });
     }
   });
 
