@@ -11,13 +11,10 @@ const AppError = require("../utils/AppError");
 
 const { clearCacheByPattern } = require("../utils/cacheHelper");
 
-// IMAGE UPLOAD
-const multer = require("multer");
-const streamifier = require("streamifier");
+// ✅ NEW CLEAN MULTER + CLOUDINARY SETUP
+const upload = require("../middleware/multer");
 const cloudinary = require("../config/cloudinary");
-
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const streamifier = require("streamifier");
 
 // =======================
 // CREATE POST
@@ -27,29 +24,27 @@ router.post(
   verifyToken,
   upload.single("image"),
   asyncHandler(async (req, res) => {
-    // ✅ FIX 1: ensure image exists
     if (!req.file) {
       throw new AppError("Image is required", 400);
     }
 
-    const streamUpload = () =>
-      new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "posts" },
-          (error, result) => {
-            if (result) resolve(result);
-            else reject(error);
-          }
-        );
-        streamifier.createReadStream(req.file.buffer).pipe(stream);
-      });
+    // Upload to Cloudinary
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "posts" },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
 
-    const result = await streamUpload();
+      streamifier.createReadStream(req.file.buffer).pipe(stream);
+    });
 
     const newPost = new Post({
       userId: req.user.id,
       caption: req.body.caption,
-      image: result.secure_url, // ✅ FIX 2: direct use
+      image: result.secure_url,
     });
 
     const savedPost = await newPost.save();
@@ -64,7 +59,7 @@ router.post(
 );
 
 // =======================
-// GET POSTS (FEED: SELF + FOLLOWING)
+// GET POSTS (FEED)
 // =======================
 router.get(
   "/",
@@ -74,10 +69,9 @@ router.get(
     const limit = Number(req.query.limit) || 10;
 
     const currentUser = await User.findById(req.user.id);
+    if (!currentUser) throw new AppError("User not found", 404);
 
     const skip = (page - 1) * limit;
-
-    // ✅ handle empty following safely
     const following = currentUser.following || [];
 
     const ids = [req.user.id, ...following];
@@ -150,6 +144,7 @@ router.put(
     } else {
       await post.updateOne({ $push: { likes: userId } });
 
+      // create notification
       if (post.userId.toString() !== userId) {
         await Notification.create({
           userId: post.userId,
@@ -178,6 +173,10 @@ router.post(
   asyncHandler(async (req, res) => {
     const post = await Post.findById(req.params.id);
     if (!post) throw new AppError("Post not found", 404);
+
+    if (!req.body.text) {
+      throw new AppError("Comment text is required", 400);
+    }
 
     const newComment = {
       userId: req.user.id,
